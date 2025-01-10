@@ -24,14 +24,6 @@ import kotlin.jvm.java
 
 class EditShopItemActivity : AppCompatActivity() {
 
-    private lateinit var viewModel: EditShopItemViewModel
-
-    private lateinit var tilName: TextInputLayout
-    private lateinit var tilCount: TextInputLayout
-    private lateinit var etName: EditText
-    private lateinit var etCount: EditText
-    private lateinit var btSave: Button
-
     private var screenMode = MODE_UNKNOWN
     private var shopItemId = ShopItem.UNDEFINED_ID
 
@@ -40,108 +32,26 @@ class EditShopItemActivity : AppCompatActivity() {
         enableEdgeToEdge()
         setContentView(R.layout.activity_edit_shop_item)
         parseIntent()
-        viewModel = ViewModelProvider(this)[EditShopItemViewModel::class.java]
-        initViews()
-        addTextChangeListeners()
-        launchRightMode()
-        observeViewModel()
+        if (savedInstanceState == null) {
+            launchRightMode()
+        }
 
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.mainEdit)) { v, insets ->
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.editShopItemContainer)) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
         }
     }
 
-    private fun observeViewModel () {
-        viewModel.errorInputCount.observe(this) { shouldShowErrorMessage ->
-            val message = if (shouldShowErrorMessage) {
-                getString(R.string.error_input_count)
-            } else {
-                null
-            }
-            tilCount.error = message
+    private fun launchRightMode() {
+        val fragment = when (screenMode) {
+            MODE_EDIT -> EditShopItemFragment.newInstanceEditItem(shopItemId)
+            MODE_ADD -> EditShopItemFragment.newInstanceAddItem()
+            else -> throw RuntimeException("Unknown screen mode $screenMode")
         }
-        viewModel.errorInputName.observe(this) { shouldShowErrorMessage ->
-            val message = if (shouldShowErrorMessage) {
-                getString(R.string.error_input_name)
-            } else {
-                null
-            }
-            tilName.error = message
-        }
-        viewModel.shouldCloseScreen.observe(this) {
-            finish()
-        }
-    }
-
-    private fun launchRightMode () {
-        when (screenMode) {
-            MODE_EDIT -> launchEditMode()
-            MODE_ADD -> launchAddMode()
-        }
-    }
-
-    private fun addTextChangeListeners() {
-        etName.addTextChangedListener(object : TextWatcher {
-            override fun beforeTextChanged(
-                s: CharSequence?,
-                start: Int,
-                count: Int,
-                after: Int,
-            ) {
-            }
-
-            override fun onTextChanged(
-                s: CharSequence?,
-                start: Int,
-                before: Int,
-                count: Int,
-            ) {
-                viewModel.resetErrorInputName()
-            }
-
-            override fun afterTextChanged(s: Editable?) {
-            }
-        })
-        etCount.addTextChangedListener(object : TextWatcher {
-            override fun beforeTextChanged(
-                s: CharSequence?,
-                start: Int,
-                count: Int,
-                after: Int,
-            ) {
-            }
-
-            override fun onTextChanged(
-                s: CharSequence?,
-                start: Int,
-                before: Int,
-                count: Int,
-            ) {
-                viewModel.resetErrorInputCount()
-            }
-
-            override fun afterTextChanged(s: Editable?) {
-            }
-        })
-    }
-
-    private fun launchEditMode() {
-        viewModel.getShopItem(shopItemId)
-        viewModel.shopItem.observe(this) {
-            etName.setText(it.name)
-            etCount.setText(it.count.toString())
-        }
-        btSave.setOnClickListener {
-            viewModel.editShopItem(etName.text?.toString(), etCount.text?.toString())
-        }
-    }
-
-    private fun launchAddMode() {
-        btSave.setOnClickListener {
-            viewModel.addShopItem(etName.text?.toString(), etCount.text?.toString())
-        }
+        supportFragmentManager.beginTransaction()
+            .replace(R.id.editShopItemContainer, fragment)
+            .commit()
     }
 
     private fun parseIntent() {
@@ -159,14 +69,6 @@ class EditShopItemActivity : AppCompatActivity() {
             }
             shopItemId = intent.getIntExtra(EXTRA_SHOP_ITEM_ID, ShopItem.UNDEFINED_ID)
         }
-    }
-
-    private fun initViews() {
-        tilName = findViewById<TextInputLayout>(R.id.tilName)
-        tilCount = findViewById<TextInputLayout>(R.id.tilCount)
-        etName = findViewById<EditText>(R.id.etName)
-        etCount = findViewById<EditText>(R.id.etCount)
-        btSave = findViewById<Button>(R.id.btSave)
     }
 
     companion object {
